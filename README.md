@@ -3,9 +3,15 @@ Prof: Robert McKenney
 
 # LAB-A03 Pulumi Weather App
 
-In this hands-on lab activity you will revisit the weather app from [LAB-A01](https://github.com/rlmckenney/cst8918-w24-a01-weather). This time you have been asked to make the solution more robust and further reduce redundant hits on the OpenWeather API. To accomplish this, the team has decided to replace the in-app memory cache with a Redis cache that will be shared by all container instances.
+In this hands-on lab activity you will revisit the weather app from [LAB-A01](https://github.com/rlmckenney/cst8918-w25-a01-weather). This time you have been asked to make the solution more robust and further reduce redundant hits on the OpenWeather API. To accomplish this, the team has decided to replace the in-app memory cache with a Redis cache that will be shared by all container instances.
 
 Additionally, it is time to deploy this app to our public cloud provider (Azure). The team has decided to use [Pulumi](https://pulumi.com) to manage the provisioning of infrastructure resources and deployment of the application.
+
+## High-level system overview
+
+This is a simplified diagram of the system architecture that you will be building and deploying.
+
+![Azure Container App system diagram](./system-architecture.png)
 
 ## Objectives
 
@@ -29,14 +35,22 @@ Additionally, it is time to deploy this app to our public cloud provider (Azure)
 - Work in pairs using a shared GitHub repo.
 - Divide the tasks and work in parallel.
 - Practice committing, pushing and resolving conflicts (if needed).
+- The submitted repo must include meaningful commits from each team member.
+- Only one team member needs to submit on Brightspace.
 
 ### Starter Repo
 
-Fork and then clone this repo to have a clean common starting point. Note that there are a couple of changes from the original repo, most significantly the Dockerfile. Do not simply continue from the previous assignment's repo.
+[!IMPORTANT]
+Do not simply continue from the previous assignment's repo.
 
-Create a working branch for this lab called `lab-a03`. Do all of your work in this branch. Do not push code directly to the `main` branch.
+Fork and then clone this repo to have a clean common starting point. There are a couple of changes from the original repo, most significantly the Dockerfile. It would be worth your time to look at the structure of the Dockerfile. It is a good example of how to define a multi-stage build for a node.js app.
 
-> Remember to run `npm install` in the project folder after you clone it. This will install all of the Node.js dependencies required to do local testing with the Remix dev server.
+Create a working branch for this lab called `lab-a03`. Do all of your work in this branch.
+
+**Do not push code directly to the `main` branch.**
+
+[!TIP]
+Remember to run `npm install` in the project folder after you clone it. This will install all of the Node.js dependencies required to do local testing with the Remix dev server.
 
 ## Part One (A01) - Add Pulumi to the project
 
@@ -72,6 +86,9 @@ pulumi config set azure-native:location westus3
 
 We will use the Pulumi Docker library module to generate the containerize image. It needs to know the path to find the _Dockerfile_ for our application, the public port number to expose, and the CPU and Memory resource limits.
 
+[!TIP]
+See the [Pulumi Docker Library Docs](https://www.pulumi.com/registry/packages/docker/) for more information.
+
 You can edit the `Pulumi.prod.yaml` file directly to add the remaining config params. It should look like this.
 
 ```yaml
@@ -83,9 +100,11 @@ config:
   cst8918-a03-infra:cpu: '1'
   cst8918-a03-infra:memory: '2'
   cst8918-a03-infra:prefixName: 'cst8918-a03-<your-username>'
+  cst8918-a03-infra:imageTag: 'v0.1.0'
 ```
 
-> NOTE: please update the `prefixName` value to replace `<your-username>` with your correct college username. e.g. my username is `mckennr`, so my prefixName would be `cst8918-a03-mckennr`. We will use this prefixName in several places when creating various infrastructure resources.
+[!IMPORTANT]
+Please update the `prefixName` value to replace `<your-username>` with your correct college username. e.g. my username is `mckennr`, so my prefixName would be `cst8918-a03-mckennr`. We will use this prefixName in several places when creating various infrastructure resources.
 
 ### Install some helper modules
 
@@ -94,6 +113,9 @@ Since we are going to deploy Docker containers on Azure, you will need to instal
 ```sh
 npm i @pulumi/docker @pulumi/azure-native
 ```
+
+[!TIP]
+There are many other plugin modules available for Pulumi. You can find them and read their documentation on the [Pulumi Registry](https://www.pulumi.com/registry/). Spend some time browsing them and learning about the different modules that are available.
 
 ### Declare the desired infrastructure
 
@@ -107,24 +129,23 @@ import * as pulumi from '@pulumi/pulumi'
 
 To begin, load the configuration variables for the given environment (stack)
 
-> Notice that to keep things simpler, we are providing default values to fall back on if the config options are missing. A better way to handle this would be to use a validation library like Zod and throw an error if a required value is missing.
+[!NOTE]
+Use the `pulumi config` command to view and set the values of the configuration options. The code below uses the `require` method to throw an error if the config value is not set. See the [Pulumi Config Docs](https://www.pulumi.com/docs/reference/pkg/nodejs/pulumi/pulumi/classes/Config.html) for more information.
 
 ```ts
 // Import the configuration settings for the current stack.
 const config = new pulumi.Config()
-const appPath = config.get('appPath') || '../'
-const prefixName = config.get('prefixName') || 'cst8918-a03-student'
+const appPath = config.require('appPath')
+const prefixName = config.require('prefixName')
 const imageName = prefixName
-const imageTag = config.get('imageTag') || 'latest'
+const imageTag = config.require('imageTag')
 // Azure container instances (ACI) service does not yet support port mapping
 // so, the containerPort and publicPort must be the same
-const containerPort = config.getNumber('containerPort') || 80
-const publicPort = config.getNumber('publicPort') || 80
-const cpu = config.getNumber('cpu') || 1
-const memory = config.getNumber('memory') || 2
+const containerPort = config.requireNumber('containerPort')
+const publicPort = config.requireNumber('publicPort')
+const cpu = config.requireNumber('cpu')
+const memory = config.requireNumber('memory')
 ```
-
-> NOTE: we have not set a value for `imageTag` in the stack config yet. We will set the version number for the container image as the tag value in a later step.
 
 #### Define the container registry
 
@@ -138,7 +159,7 @@ import * as resources from '@pulumi/azure-native/resources'
 import * as containerregistry from '@pulumi/azure-native/containerregistry'
 ```
 
-Append this definition code to the bottom of your index.ts file. We will use the cost-optimized _basic_ registry SKU.
+Append this definition code to the bottom of your index.ts file. **We will use the cost-optimized _basic_ registry SKU.**
 
 ```ts
 // Create a resource group.
@@ -149,8 +170,8 @@ const registry = new containerregistry.Registry(`${prefixName}ACR`, {
   resourceGroupName: resourceGroup.name,
   adminUserEnabled: true,
   sku: {
-    name: containerregistry.SkuName.Basic
-  }
+    name: containerregistry.SkuName.Basic,
+  },
 })
 ```
 
@@ -161,17 +182,17 @@ Before you can tell the Docker module to store the container image in the contai
 const registryCredentials = containerregistry
   .listRegistryCredentialsOutput({
     resourceGroupName: resourceGroup.name,
-    registryName: registry.name
+    registryName: registry.name,
   })
-  .apply(creds => {
+  .apply((creds) => {
     return {
       username: creds.username!,
-      password: creds.passwords![0].value!
+      password: creds.passwords![0].value!,
     }
   })
 ```
 
-This seems like a good time to check our work. Temporarily, append these stack output instructions so that you can make sure that everything is working up to this point.
+This seems like a good time to check our work. _Temporarily,_ append these stack output instructions so that you can make sure that everything is working up to this point.
 
 ```ts
 export const acrServer = registry.loginServer
@@ -192,15 +213,17 @@ Outputs:
   + acrUsername: "containerRegistry84d73e7d"
 ```
 
-> NOTE: Pulumi automatically adds the random characters to the end of the registry name to ensure uniqueness. Yours will be slightly different.
+[!NOTE]
+Pulumi automatically adds the random characters to the end of the registry name to ensure uniqueness. Yours will be slightly different.
 
 **SUCCESS !**
 
-> OK now you can delete those last two `export` lines. You won't need them any more.
+[!TIP]
+OK now you can delete those last two `export` lines. You won't need them any more.
 
 #### Create the Docker image and store it in the container registry
 
-Import the `@pulumi/docker` module at the top of the index.ts file and then append the container definition to the bottom. Of note, the `build.platform` option tells Docker what the target runtime architecture is. This will make sure to pull the right base image when processing the Dockerfile.
+Import the `@pulumi/docker` module at the top of the index.ts file and then append the container definition to the bottom of the file. Of note, the `build.platform` option tells Docker what the target runtime architecture is. This will make sure to pull the right base image when processing the Dockerfile.
 
 ```ts
 // Other imports at the top of the module
@@ -213,13 +236,13 @@ const image = new docker.Image(`${prefixName}-image`, {
   imageName: pulumi.interpolate`${registry.loginServer}/${imageName}:${imageTag}`,
   build: {
     context: appPath,
-    platform: 'linux/amd64'
+    platform: 'linux/amd64',
   },
   registry: {
     server: registry.loginServer,
     username: registryCredentials.username,
-    password: registryCredentials.password
-  }
+    password: registryCredentials.password,
+  },
 })
 ```
 
@@ -231,7 +254,7 @@ pulumi config set imageTag "v0.2.0"
 
 #### Create an Azure Container App service container group
 
-Create a container group in the Azure Container App service and make it publicly accessible. Our system design calls for a linux container host (Azure also supports Windows hosts). This is a big chunk of code.
+Create a container group in the Azure Container App service and make it publicly accessible. Our system design calls for a linux container host (Azure also supports Windows hosts). This is a big chunk of code. Let's break it down.
 
 - the first section defines the container group meta info, including the host OS type and the image registry to pull from
 - then it defines the container images to use, any environment variables to inject, which target port to use on the container and resource limits for the containers.
@@ -254,8 +277,8 @@ const containerGroup = new containerinstance.ContainerGroup(
       {
         server: registry.loginServer,
         username: registryCredentials.username,
-        password: registryCredentials.password
-      }
+        password: registryCredentials.password,
+      },
     ],
     containers: [
       {
@@ -264,26 +287,26 @@ const containerGroup = new containerinstance.ContainerGroup(
         ports: [
           {
             port: containerPort,
-            protocol: 'tcp'
-          }
+            protocol: 'tcp',
+          },
         ],
         environmentVariables: [
           {
             name: 'PORT',
-            value: containerPort.toString()
+            value: containerPort.toString(),
           },
           {
             name: 'WEATHER_API_KEY',
-            value: '<your-secret-key>'
-          }
+            value: '<your-secret-key>',
+          },
         ],
         resources: {
           requests: {
             cpu: cpu,
-            memoryInGB: memory
-          }
-        }
-      }
+            memoryInGB: memory,
+          },
+        },
+      },
     ],
     ipAddress: {
       type: containerinstance.ContainerGroupIpAddressType.Public,
@@ -291,15 +314,16 @@ const containerGroup = new containerinstance.ContainerGroup(
       ports: [
         {
           port: publicPort,
-          protocol: 'tcp'
-        }
-      ]
-    }
-  }
+          protocol: 'tcp',
+        },
+      ],
+    },
+  },
 )
 ```
 
-> Replace **\<your-secret-key\>** with your real API key. Yes, unencrypted for now -- we will take care of that in part two.
+[!WARNING]
+Replace **\<your-secret-key\>** with your real API key. Yes, unencrypted for now -- we will take care of that in part two.
 
 ##### Define the output values
 
@@ -307,10 +331,10 @@ You will need to know the final IP address and the public URL to test the app in
 
 ```ts
 // Export the service's IP address, hostname, and fully-qualified URL.
-export const hostname = containerGroup.ipAddress.apply(addr => addr!.fqdn!)
-export const ip = containerGroup.ipAddress.apply(addr => addr!.ip!)
+export const hostname = containerGroup.ipAddress.apply((addr) => addr!.fqdn!)
+export const ip = containerGroup.ipAddress.apply((addr) => addr!.ip!)
 export const url = containerGroup.ipAddress.apply(
-  addr => `http://${addr!.fqdn!}:${containerPort}`
+  (addr) => `http://${addr!.fqdn!}:${containerPort}`,
 )
 ```
 
@@ -328,9 +352,9 @@ After the deployment completes, you should be able to see the deployed resources
 
 **Both partners should submit on Brightspace**
 
-When you have completed Part One, make sure that you have committed all of your changes with git, and pushed your commits up to GitHub. Remember, this should be on a branch call `lab-a03`.
+When you have completed Part One, make sure that you have committed all of your changes with git, and pushed your commits up to GitHub. Remember, this should be on a branch call `lab-a03`. Also add a screenshot of your browser showing the application running -- make sure the public URL is clearly visible. The screenshot should be in the root of your project folder with the name `lab-a03.png`.
 
-Submit a link to your GitHub repo for this assignment in Brightspace. Also submit a screenshot of your browser showing the application running -- make sure the public URL is clearly visible.
+Submit a link to your GitHub repo for this assignment in Brightspace.
 
 ## Clean-up!
 

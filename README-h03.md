@@ -44,8 +44,8 @@ In a larger and more complicated solution design, you will likely want to use ei
 pulumi config set weatherApiKey <your-secret-key> --secret
 ```
 
-[!IMPORTANT]
-Of course replace \<your-secret-key\> with your real OpenWeather API key.
+> [!IMPORTANT]  
+> Of course replace \<your-secret-key\> with your real OpenWeather API key.
 
 To access this secret in the IaC program file (infrastructure/index.ts), modify the environment variables section of the container definition to replace your plain text API key with the config value ...
 
@@ -94,9 +94,9 @@ export const redis = await createClient({ url })
   .connect()
 ```
 
-[!NOTE]
-This will default to connecting to the default Redis port (6379) on localhost.
-We will set the environment variable to the correct value later with Pulumi.
+> [!NOTE]
+> This will default to connecting to the default Redis port (6379) on localhost.
+> We will set the environment variable to the correct value later with Pulumi.
 
 ##### 2. Modify the _open-weather-service.ts_ module to use the Redis client instead of the simple in-memory cache.
 
@@ -143,8 +143,8 @@ Then in a different terminal tab, you can run the Remix dev server to test the a
 npm run dev
 ```
 
-[!TIP]
-Remember that the local dev server will need the WEATHER_API_KEY environment variable set.
+> [!TIP]
+> Remember that the local dev server will need the WEATHER_API_KEY environment variable set.
 
 **Success!**
 
@@ -164,8 +164,8 @@ Great! You got the application code updated to use Redis. Now we need to make su
 
 **Let's implement option two.**
 
-[!TIP]
-See the [Azure Cache for Redis](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/) documentation.
+> [!TIP]
+> See the [Azure Cache for Redis](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/) documentation.
 
 For this lab activity you can use the `basic` service tier (SKU) to save cost. For a real application your should choose the `premium` teir or higher.
 
@@ -210,8 +210,8 @@ const redisAccessKey = cache
 
 Then you can use the `pulumi.interpolate` method to construct the final URL.
 
-[!TIP]
-See [Pulumi docs: Working with Outputs and Strings](https://www.pulumi.com/docs/concepts/inputs-outputs/#outputs-and-strings)
+> [!TIP]
+> See [Pulumi docs: Working with Outputs and Strings](https://www.pulumi.com/docs/concepts/inputs-outputs/#outputs-and-strings)
 
 ```ts
 // Construct the Redis connection string to be passed as an environment variable in the app container
@@ -258,5 +258,5 @@ When you are all done, don't forget to clean up the unneeded Azure resources.
 pulumi destroy
 ```
 
-[!CAUTION]
-Failing to do this may exceed your Azure subscription limit, resulting in academic penalties!
+> [!CAUTION]
+> Failing to do this may exceed your Azure subscription limit, resulting in academic penalties!

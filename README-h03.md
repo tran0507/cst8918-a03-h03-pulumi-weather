@@ -24,7 +24,7 @@ This is a continuation of the practical lab scenario from Lab-a03. As a reminder
 
 ### Starter Repo
 
-You should proceed from where you left off at the end of Lab-A03. Merge your code from the `lab-a03` branch back into the `main` branch, if you haven't done so already, and then make a new branch called `hybrid-h03`. All of the work for this assignment should be done in this branch.
+You should proceed from where you left off at the end of Lab-A03. Merge your code from the `lab-a03` branch back into the `main` branch and then create a new branch called `hybrid-h03` based from `main`. All of the work for this assignment should be done in this new branch.
 
 ## Part Two (H03) - Encrypt secrets and modify the application to use Redis
 
@@ -44,7 +44,8 @@ In a larger and more complicated solution design, you will likely want to use ei
 pulumi config set weatherApiKey <your-secret-key> --secret
 ```
 
-> Of course replace \<your-secret-key\> with your real OpenWeather API key.
+[!IMPORTANT]
+Of course replace \<your-secret-key\> with your real OpenWeather API key.
 
 To access this secret in the IaC program file (infrastructure/index.ts), modify the environment variables section of the container definition to replace your plain text API key with the config value ...
 
@@ -84,17 +85,18 @@ npm install redis
 ##### 1. Create a database connection and export a reusable client object. Add a new file called `redis-connection.ts` to the `app/data-access` folder.
 
 ```ts
-import {createClient} from 'redis'
+import { createClient } from 'redis'
 
 const url = process.env.REDIS_URL || 'redis://localhost:6379'
 
-export const redis = await createClient({url})
-  .on('error', err => console.error('Redis client connection error', err))
+export const redis = await createClient({ url })
+  .on('error', (err) => console.error('Redis client connection error', err))
   .connect()
 ```
 
-> This will default to connecting to the default Redis port (6379) on localhost.
-> We will set the environment variable to the correct value later with Pulumi.
+[!NOTE]
+This will default to connecting to the default Redis port (6379) on localhost.
+We will set the environment variable to the correct value later with Pulumi.
 
 ##### 2. Modify the _open-weather-service.ts_ module to use the Redis client instead of the simple in-memory cache.
 
@@ -102,7 +104,7 @@ export const redis = await createClient({url})
 import { redis } from '../data-access/redis-connection'
 
 const API_KEY = process.env.WEATHER_API_KEY
-const BASE_URL = 'https://api.openweathermap.org/data/3.0/onecall'
+const BASE_URL = 'https://api.openweathermap.org/data/2.5/weather'
 const TEN_MINUTES = 1000 * 60 * 10 // in milliseconds
 
 interface FetchWeatherDataParams {
@@ -113,7 +115,7 @@ interface FetchWeatherDataParams {
 export async function fetchWeatherData({
   lat,
   lon,
-  units
+  units,
 }: FetchWeatherDataParams) {
   const queryString = `lat=${lat}&lon=${lon}&units=${units}`
 
@@ -122,7 +124,7 @@ export async function fetchWeatherData({
 
   const response = await fetch(`${BASE_URL}?${queryString}&appid=${API_KEY}`)
   const data = await response.text() // avoid an unnecessary extra JSON.stringify
-  await redis.set(queryString, data, {PX: TEN_MINUTES}) // The PX option sets the expiry time
+  await redis.set(queryString, data, { PX: TEN_MINUTES }) // The PX option sets the expiry time
   return JSON.parse(data)
 }
 ```
@@ -140,6 +142,9 @@ Then in a different terminal tab, you can run the Remix dev server to test the a
 ```sh
 npm run dev
 ```
+
+[!TIP]
+Remember that the local dev server will need the WEATHER_API_KEY environment variable set.
 
 **Success!**
 
@@ -159,7 +164,8 @@ Great! You got the application code updated to use Redis. Now we need to make su
 
 **Let's implement option two.**
 
-> See the [Azure Cache for Redis](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/) documentation.
+[!TIP]
+See the [Azure Cache for Redis](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/) documentation.
 
 For this lab activity you can use the `basic` service tier (SKU) to save cost. For a real application your should choose the `premium` teir or higher.
 
@@ -180,13 +186,13 @@ const redis = new cache.Redis(`${prefixName}-redis`, {
   redisVersion: 'Latest',
   minimumTlsVersion: '1.2',
   redisConfiguration: {
-    maxmemoryPolicy: 'allkeys-lru'
+    maxmemoryPolicy: 'allkeys-lru',
   },
   sku: {
     name: 'Basic',
     family: 'C',
-    capacity: 0
-  }
+    capacity: 0,
+  },
 })
 ```
 
@@ -195,18 +201,21 @@ In order to construct the Redis connection string required for the app container
 ```ts
 // Extract the auth creds from the deployed Redis service
 const redisAccessKey = cache
-  .listRedisKeysOutput({ name: redis.name, resourceGroupName: resourceGroup.name })
-  .apply(keys => keys.primaryKey)
-
+  .listRedisKeysOutput({
+    name: redis.name,
+    resourceGroupName: resourceGroup.name,
+  })
+  .apply((keys) => keys.primaryKey)
 ```
 
 Then you can use the `pulumi.interpolate` method to construct the final URL.
-> See [Pulumi docs: Working with Outputs and Strings](https://www.pulumi.com/docs/concepts/inputs-outputs/#outputs-and-strings)
+
+[!TIP]
+See [Pulumi docs: Working with Outputs and Strings](https://www.pulumi.com/docs/concepts/inputs-outputs/#outputs-and-strings)
 
 ```ts
 // Construct the Redis connection string to be passed as an environment variable in the app container
 const redisConnectionString = pulumi.interpolate`rediss://:${redisAccessKey}@${redis.hostName}:${redis.sslPort}`
-
 ```
 
 Finally, set the `REDIS_URL` environment variable in the container group definition section.
@@ -216,8 +225,8 @@ environmentVariables: [
   // existing vars ...
   {
     name: 'REDIS_URL',
-    value: redisConnectionString
-  }
+    value: redisConnectionString,
+  },
 ]
 ```
 
@@ -237,7 +246,7 @@ Congratulations!!
 
 Take a screenshot of your terminal showing the output of the `pulumi up` command. Add that screenshot to the root of your project folder with the name `pulumi-output.png`.
 
-When you have completed this activity, make sure that you have committed all of your changes with git, and pushed your commits up to GitHub. Remember, this should be on a branch called `hybrid-h03`.
+When you have completed this activity, make sure that you have committed all of your changes with git, and pushed your commits up to GitHub. Remember, this should be on a branch called `hybrid-h03` and there should be commits from both partners.
 
 Submit a link to your GitHub repo for this assignment in Brightspace.
 
@@ -248,3 +257,6 @@ When you are all done, don't forget to clean up the unneeded Azure resources.
 ```sh
 pulumi destroy
 ```
+
+[!CAUTION]
+Failing to do this may exceed your Azure subscription limit, resulting in academic penalties!

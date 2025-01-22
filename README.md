@@ -40,8 +40,8 @@ This is a simplified diagram of the system architecture that you will be buildin
 
 ### Starter Repo
 
-[!IMPORTANT]
-Do not simply continue from the previous assignment's repo.
+> [!IMPORTANT]
+> Do not simply continue from the previous assignment's repo.
 
 Fork and then clone this repo to have a clean common starting point. There are a couple of changes from the original repo, most significantly the Dockerfile. It would be worth your time to look at the structure of the Dockerfile. It is a good example of how to define a multi-stage build for a node.js app.
 
@@ -49,8 +49,8 @@ Create a working branch for this lab called `lab-a03`. Do all of your work in th
 
 **Do not push code directly to the `main` branch.**
 
-[!TIP]
-Remember to run `npm install` in the project folder after you clone it. This will install all of the Node.js dependencies required to do local testing with the Remix dev server.
+> [!TIP]
+> Remember to run `npm install` in the project folder after you clone it. This will install all of the Node.js dependencies required to do local testing with the Remix dev server.
 
 ## Part One (A01) - Add Pulumi to the project
 
@@ -86,8 +86,8 @@ pulumi config set azure-native:location westus3
 
 We will use the Pulumi Docker library module to generate the containerize image. It needs to know the path to find the _Dockerfile_ for our application, the public port number to expose, and the CPU and Memory resource limits.
 
-[!TIP]
-See the [Pulumi Docker Library Docs](https://www.pulumi.com/registry/packages/docker/) for more information.
+> [!TIP]
+> See the [Pulumi Docker Library Docs](https://www.pulumi.com/registry/packages/docker/) for more information.
 
 You can edit the `Pulumi.prod.yaml` file directly to add the remaining config params. It should look like this.
 
@@ -103,8 +103,8 @@ config:
   cst8918-a03-infra:imageTag: 'v0.1.0'
 ```
 
-[!IMPORTANT]
-Please update the `prefixName` value to replace `<your-username>` with your correct college username. e.g. my username is `mckennr`, so my prefixName would be `cst8918-a03-mckennr`. We will use this prefixName in several places when creating various infrastructure resources.
+> [!IMPORTANT]
+> Please update the `prefixName` value to replace `<your-username>` with your correct college username. e.g. my username is `mckennr`, so my prefixName would be `cst8918-a03-mckennr`. We will use this prefixName in several places when creating various infrastructure resources.
 
 ### Install some helper modules
 
@@ -114,8 +114,8 @@ Since we are going to deploy Docker containers on Azure, you will need to instal
 npm i @pulumi/docker @pulumi/azure-native
 ```
 
-[!TIP]
-There are many other plugin modules available for Pulumi. You can find them and read their documentation on the [Pulumi Registry](https://www.pulumi.com/registry/). Spend some time browsing them and learning about the different modules that are available.
+> [!TIP]
+> There are many other plugin modules available for Pulumi. You can find them and read their documentation on the [Pulumi Registry](https://www.pulumi.com/registry/). Spend some time browsing them and learning about the different modules that are available.
 
 ### Declare the desired infrastructure
 
@@ -129,8 +129,8 @@ import * as pulumi from '@pulumi/pulumi'
 
 To begin, load the configuration variables for the given environment (stack)
 
-[!NOTE]
-Use the `pulumi config` command to view and set the values of the configuration options. The code below uses the `require` method to throw an error if the config value is not set. See the [Pulumi Config Docs](https://www.pulumi.com/docs/reference/pkg/nodejs/pulumi/pulumi/classes/Config.html) for more information.
+> [!NOTE]
+> Use the `pulumi config` command to view and set the values of the configuration options. The code below uses the `require` method to throw an error if the config value is not set. See the [Pulumi Config Docs](https://www.pulumi.com/docs/reference/pkg/nodejs/pulumi/pulumi/classes/Config.html) for more information.
 
 ```ts
 // Import the configuration settings for the current stack.
@@ -213,13 +213,13 @@ Outputs:
   + acrUsername: "containerRegistry84d73e7d"
 ```
 
-[!NOTE]
-Pulumi automatically adds the random characters to the end of the registry name to ensure uniqueness. Yours will be slightly different.
+> [!NOTE]
+> Pulumi automatically adds the random characters to the end of the registry name to ensure uniqueness. Yours will be slightly different.
 
 **SUCCESS !**
 
-[!TIP]
-OK now you can delete those last two `export` lines. You won't need them any more.
+> [!TIP]
+> OK now you can delete those last two `export` lines. You won't need them any more.
 
 #### Create the Docker image and store it in the container registry
 
@@ -322,8 +322,8 @@ const containerGroup = new containerinstance.ContainerGroup(
 )
 ```
 
-[!WARNING]
-Replace **\<your-secret-key\>** with your real API key. Yes, unencrypted for now -- we will take care of that in part two.
+> [!WARNING]
+> Replace **\<your-secret-key\>** with your real API key. Yes, unencrypted for now -- we will take care of that in part two.
 
 ##### Define the output values
 
@@ -363,6 +363,9 @@ When you are all done, don't forget to clean up the unneeded Azure resources.
 ```sh
 pulumi destroy
 ```
+
+> [!CAUTION]
+> Failing to do this may exceed your Azure subscription limit, resulting in academic penalties!
 
 ## Next Steps
 

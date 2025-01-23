@@ -350,7 +350,7 @@ After the deployment completes, you should be able to see the deployed resources
 
 ### Demo / Submit
 
-**Both partners should submit on Brightspace**
+**Only one partner submit for the group on Brightspace**
 
 When you have completed Part One, make sure that you have committed all of your changes with git, and pushed your commits up to GitHub. Remember, this should be on a branch call `lab-a03`. Also add a screenshot of your browser showing the application running -- make sure the public URL is clearly visible. The screenshot should be in the root of your project folder with the name `lab-a03.png`.
 

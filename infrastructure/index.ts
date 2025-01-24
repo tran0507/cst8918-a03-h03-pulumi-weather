@@ -1,6 +1,8 @@
 
 import * as resources from '@pulumi/azure-native/resources'
 import * as containerregistry from '@pulumi/azure-native/containerregistry'
+import * as docker from '@pulumi/docker'
+
 
 import * as pulumi from "@pulumi/pulumi";
 // Import the configuration settings for the current stack.
@@ -42,3 +44,19 @@ const registryCredentials = containerregistry
     }
   })
 
+
+const image = new docker.Image(`${prefixName}-image`, {
+  imageName: pulumi.interpolate`${registry.loginServer}/${imageName}:${imageTag}`,
+  build: {
+    context: appPath,
+    platform: 'linux/amd64',
+  },
+  registry: {
+    server: registry.loginServer,
+    username: registryCredentials.username,
+    password: registryCredentials.password,
+  },
+})
+
+
+  
